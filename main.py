@@ -148,15 +148,20 @@ def make_output_page(src_doc: fitz.Document, page_index: int, size_key: str, add
     out_page.show_pdf_page(fitz.Rect(0, 0, target_w, target_h), tmp, 0, clip=clip, keep_proportion=False)
 
     if add_made:
-        made_y_top = max(0, target_h - cm_to_pt(0.5) - made_font_size - 2)
-        made_y_bottom = min(target_h, made_y_top + made_font_size + 5)
-        out_page.insert_textbox(
-            fitz.Rect(0, made_y_top, target_w, made_y_bottom),
-            "Made In China",
+        # PyMuPDF's insert_textbox may silently skip text when the box is tight
+        # after show_pdf_page. Use baseline insertion with explicit centering instead.
+        made_text = "Made In China"
+        made_font_size = float(made_font_size or 8.0)
+        made_y = target_h - cm_to_pt(0.5)  # baseline: 0.5 cm from bottom
+        text_w = fitz.get_text_length(made_text, fontname="helv", fontsize=made_font_size)
+        made_x = max(0, (target_w - text_w) / 2)
+        out_page.insert_text(
+            (made_x, made_y),
+            made_text,
             fontsize=made_font_size,
             fontname="helv",
             color=(0, 0, 0),
-            align=fitz.TEXT_ALIGN_CENTER,
+            overlay=True,
         )
 
     tmp.close()
